@@ -23,25 +23,31 @@ func bersihkanURL(namaFile string) {
 	}
 	defer file.Close()
 
-	var barisAwal []string
 	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		barisAwal = append(barisAwal, scanner.Text())
-	}
-
+	seen := make(map[string]bool)
 	var hasil []string
-	for _, url := range barisAwal {
-		lower := strings.ToLower(url)
+	total := 0
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		lower := strings.ToLower(line)
+		total++
+
+		// Skip jika mengandung kata terlarang
 		skip := false
-		for _, filter := range kataFilter {
-			if strings.Contains(lower, filter) {
+		for _, kata := range kataFilter {
+			if strings.Contains(lower, kata) {
 				skip = true
 				break
 			}
 		}
-		if !skip {
-			hasil = append(hasil, url)
+		if skip || line == "" || seen[line] {
+			continue
 		}
+
+		// Simpan jika belum pernah muncul
+		seen[line] = true
+		hasil = append(hasil, line)
 	}
 
 	outputFile := strings.TrimSuffix(namaFile, filepath.Ext(namaFile)) + "_cleaned.txt"
@@ -52,11 +58,11 @@ func bersihkanURL(namaFile string) {
 	}
 	defer out.Close()
 
-	for _, line := range hasil {
-		out.WriteString(line + "\n")
+	for _, url := range hasil {
+		out.WriteString(url + "\n")
 	}
 
-	fmt.Printf("✅ %d URL dibuang. Hasil disimpan di: %s\n", len(barisAwal)-len(hasil), outputFile)
+	fmt.Printf("✅ %d URL dibuang. %d URL unik disimpan di: %s\n", total-len(hasil), len(hasil), outputFile)
 }
 
 func main() {
